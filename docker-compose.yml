@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: acme-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY:-acme-secret-key-2024}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - ./data:/app/data   # persist load + call data outside container
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://api:8000
+        - VITE_API_KEY=${API_KEY:-acme-secret-key-2024}
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  default:
+    name: acme-network

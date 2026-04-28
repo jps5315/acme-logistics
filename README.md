@@ -32,12 +32,14 @@ Carrier (phone/web) → HappyRobot Voice Agent
 ```
 acme-logistics/
 ├── main.py                  # FastAPI application (api service)
+├── loads_database.py        # Standalone loads API (loads service)
 ├── requirements.txt         # Python runtime dependencies
 ├── requirements-test.txt    # Python test dependencies
-├── Dockerfile.api           # Container definition for the api service
-├── docker-compose.yml       # Orchestrates api + frontend services
+├── Dockerfile.api           # Container for the api service
+├── Dockerfile.loads         # Container for the loads service
+├── docker-compose.yml       # Orchestrates api + loads + frontend services
+├── railway.toml             # Railway build config (backend service)
 ├── data/
-│   ├── loads.json           # Load database (edit to add/remove loads)
 │   ├── call_results.json    # Created at runtime
 │   └── bookings.json        # Created at runtime
 ├── frontend/                # React SPA (frontend service)
@@ -67,11 +69,13 @@ export GEMINI_API_KEY=your-gemini-key-here   # omit to disable AI insights
 docker compose up --build
 ```
 
-| Service   | URL                        |
-|-----------|----------------------------|
-| Frontend  | http://localhost:3000      |
-| API       | http://localhost:8000      |
-| API Docs  | http://localhost:8000/docs |
+| Service        | URL                        |
+|----------------|----------------------------|
+| Frontend       | http://localhost:3000      |
+| API            | http://localhost:8000      |
+| API Docs       | http://localhost:8000/docs |
+| Loads Service  | http://localhost:8001      |
+| Loads Docs     | http://localhost:8001/docs |
 
 ## Environment Variables
 
@@ -138,10 +142,10 @@ The application is deployed on Railway as two separate services.
 
 | Service  | URL |
 |----------|-----|
-| Frontend | `https://<your-frontend-railway-url>` |
-| Backend  | `https://<your-backend-railway-url>` |
-| API Docs | `https://<your-backend-railway-url>/docs` |
-| Health   | `https://<your-backend-railway-url>/health` |
+| Frontend | `https:// https://profound-stillness-production-cedb.up.railway.app/|
+| Backend  | `https:// https://backend-production-68448.up.railway.app/|
+| API Docs | `https://https://backend-production-68448.up.railway.app/docs` |
+| Health   | `https://https://backend-production-68448.up.railway.app/health` |
 
 ### Reproducing the deployment from scratch
 
@@ -177,9 +181,21 @@ Railway will auto-detect the repo. Configure the service:
    API_KEY=your-secure-key-here
    GEMINI_API_KEY=your-gemini-key-here
    ```
-3. Railway deploys automatically. Verify at `https://<backend-url>/health`
+3. Railway deploys automatically. Verify at `https://backend-production-68448.up.railway.app/health`
 
-#### Step 4 — Deploy the frontend service
+#### Step 4 — Deploy the loads database service
+
+1. In the same Railway project → **New Service** → **GitHub Repo** → same repo
+2. In service settings → **Build** → set Dockerfile path to `Dockerfile.loads`
+3. Go to **Variables** and add:
+   ```
+   API_KEY=your-secure-key-here
+   ```
+   *(must match the `API_KEY` on the backend)*
+4. Railway assigns a public URL — verify at `https://<loads-url>/health`
+   Should return `{"status":"ok","loads_count":15,...}`
+
+#### Step 5 — Deploy the frontend service
 
 1. In the same Railway project → **New Service** → **GitHub Repo** → same repo
 2. In service settings → **Build** → set **Root Directory** to `frontend/`
@@ -192,7 +208,7 @@ Railway will auto-detect the repo. Configure the service:
 4. Trigger a **Redeploy** to rebuild with the variables baked in
 5. Open the frontend URL — the dashboard should load and connect to the backend
 
-#### Step 5 — Add a volume for data persistence
+#### Step 6 — Add a volume for data persistence
 
 By default Railway containers have ephemeral storage — call data is lost on redeploy. To persist it:
 
@@ -201,20 +217,17 @@ By default Railway containers have ephemeral storage — call data is lost on re
 
 This keeps `call_results.json`, `bookings.json`, and `loads.json` across deploys.
 
-#### Step 6 — Connect HappyRobot
+#### Step 7 — Connect HappyRobot
 
 Update your HappyRobot workflow nodes to point at the Railway backend URL (see HappyRobot Workflow Setup section below).
 
 ---
 
-Each option deploys two containers independently:
-- **FastAPI backend** — built from `Dockerfile.api` at the repo root
-- **React frontend** — built from `frontend/Dockerfile`
-
 ## Security Notes
 
 - Rotate `API_KEY` before going to production — the default is public.
-- Never commit `GEMINI_API_KEY` to source control — use your platform's secrets manager.
+- Never commit `GEMINI_API_KEY` to source control — use your platform's secrets  
+  manager.
 - All cloud options above provide automatic HTTPS termination.
 - Consider restricting CORS origins in `main.py` (`allow_origins`) for production.
 

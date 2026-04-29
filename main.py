@@ -69,6 +69,7 @@ gemini_client = GeminiClient(os.getenv("GEMINI_API_KEY"))
 
 API_KEY_NAME = "X-API-Key"
 DATA_DIR = Path(os.getenv("DATA_DIR", str(Path(__file__).parent / "data")))
+DATA_DIR.mkdir(parents=True, exist_ok=True)  # ensure directory exists on startup
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 

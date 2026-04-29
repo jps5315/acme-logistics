@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Security, Query
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 try:
     import google.generativeai as genai
@@ -105,6 +105,30 @@ def save_json(filename: str, data):
     with open(path, "w") as f:
         json.dump(data, f, indent=2, default=str)
 
+# ── Input sanitization ────────────────────────────────────────────────────────
+_EMPTY_VALUES = {"", "n/a", "na", "null", "none", "-", "N/A", "NA", "NULL", "None"}
+
+def _to_float(v):
+    """Convert a value to float, returning None for empty/non-numeric strings."""
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str) and (v.strip() in _EMPTY_VALUES or v.strip() == ""):
+        return None
+    try:
+        return float(str(v).strip())
+    except (ValueError, TypeError):
+        return None
+
+def _to_str(v):
+    """Return None for empty/placeholder strings."""
+    if v is None:
+        return None
+    if isinstance(v, str) and v.strip() in _EMPTY_VALUES:
+        return None
+    return v
+
 # ── Models ────────────────────────────────────────────────────────────────────
 class BookingRequest(BaseModel):
     load_id: str
@@ -128,6 +152,27 @@ class CallResult(BaseModel):
     transcript: Optional[str] = None
     call_duration: Optional[float] = None
     timestamp: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def sanitize_fields(cls, values):
+        """Coerce empty strings and N/A values to None before field validation."""
+        float_fields = {
+            "agreed_price", "loadboard_rate", "gross_profit",
+            "gross_profit_margin", "call_duration"
+        }
+        str_fields = {
+            "session_id", "mc_number", "carrier_name", "load_id",
+            "deal_outcome", "customer_sentiment", "call_summary",
+            "notes", "transcript", "timestamp"
+        }
+        for field in float_fields:
+            if field in values:
+                values[field] = _to_float(values[field])
+        for field in str_fields:
+            if field in values:
+                values[field] = _to_str(values[field])
+        return values
 
 # ── Loads ─────────────────────────────────────────────────────────────────────
 @app.get("/loads/search")

@@ -181,7 +181,7 @@ Railway will auto-detect the repo. Configure the service:
    API_KEY=your-secure-key-here
    GEMINI_API_KEY=your-gemini-key-here
    ```
-3. Railway deploys automatically. Verify at `https://backend-production-68448.up.railway.app/health`
+3. Railway deploys automatically. Verify at `https://<your-backend-railway-url>/health`
 
 #### Step 4 — Deploy the loads database service
 

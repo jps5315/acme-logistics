@@ -293,7 +293,6 @@ async def search_loads(
     origin:         Optional[str] = Query(None, description="Carrier's current location, e.g. 'Chicago, IL'"),
     equipment_type: Optional[str] = Query(None, description="Equipment type: dry van | flatbed | reefer"),
     destination:    Optional[str] = Query(None, description="Preferred destination, e.g. 'Dallas, TX'"),
-    _key: str = Security(auth),
 ):
     """
     Search available loads by origin, equipment type, and/or destination.

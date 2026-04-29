@@ -51,7 +51,7 @@ class GeminiClient:
                 self._model = None
             else:
                 genai.configure(api_key=api_key)
-                self._model = genai.GenerativeModel("gemini-2.0-flash")
+                self._model = genai.GenerativeModel("gemini-2.5-flash")
 
     async def generate_insights(self, kpi_context: dict) -> str | None:
         if self._model is None:

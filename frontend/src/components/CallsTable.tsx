@@ -15,17 +15,8 @@ function formatField(value: string | null): string {
   return value ?? '—';
 }
 
-function formatTimestamp(value: string | null): string {
-  if (!value) return '—';
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
-}
-
 const COLUMNS = [
-  'Timestamp',
+  'Session ID',
   'MC Number',
   'Carrier Name',
   'Load ID',
@@ -82,7 +73,7 @@ function CallRow({ call }: { call: RecentCall }) {
         }}
       >
         <td data-testid="cell-timestamp" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-          {formatTimestamp(call.session_id ?? call.timestamp)}
+          {formatField(call.session_id)}
         </td>
         <td data-testid="cell-mc_number" style={{ padding: '10px 12px' }}>
           {formatField(call.mc_number)}

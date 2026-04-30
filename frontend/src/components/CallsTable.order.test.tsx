@@ -33,7 +33,7 @@ describe('CallsTable — Property 8: timestamp descending order', () => {
         (dates) => {
           const calls = dates.map((d, i) => ({
             id: `test-id-${i}`,
-            session_id: null,
+            session_id: `session-${i}-${d.getTime()}`,
             mc_number: null,
             carrier_name: null,
             load_id: null,
@@ -64,9 +64,8 @@ describe('CallsTable — Property 8: timestamp descending order', () => {
             return false;
           }
 
-          const expectedTexts = sortedCalls.map(call =>
-            new Date(call.timestamp!).toLocaleString()
-          );
+          // Session ID is rendered as-is (no formatting)
+          const expectedTexts = sortedCalls.map(call => call.session_id!);
 
           for (let i = 0; i < sortedCalls.length; i++) {
             if (timestampCells[i].textContent !== expectedTexts[i]) {

@@ -3,7 +3,6 @@ import { describe, it, afterEach } from 'vitest';
 import * as fc from 'fast-check';
 import { render, cleanup } from '@testing-library/react';
 import CallsTable from './CallsTable';
-import type { RecentCall } from '../types/metrics';
 
 /**
  * Validates: Requirements 7.4
@@ -13,34 +12,6 @@ import type { RecentCall } from '../types/metrics';
  * This test verifies that IF the input is already sorted descending, the rendered
  * rows maintain that same order.
  */
-
-function recentCallArbitrary(): fc.Arbitrary<RecentCall> {
-  // Generate ISO timestamp strings (non-null) for ordering tests
-  const isoTimestamp = fc
-    .date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') })
-    .map((d) => d.toISOString());
-  const nullableStr = fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0));
-  const nullableFloat = fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true }));
-
-  return fc.record({
-    id: fc.uuidV(4),
-    session_id: nullableStr,
-    mc_number: nullableStr,
-    carrier_name: nullableStr,
-    load_id: nullableStr,
-    agreed_price: nullableFloat,
-    loadboard_rate: nullableFloat,
-    deal_outcome: nullableStr,
-    customer_sentiment: nullableStr,
-    call_summary: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0)),
-    gross_profit: nullableFloat,
-    gross_profit_margin: nullableFloat,
-    gross_loss: nullableFloat,
-    gross_loss_margin: nullableFloat,
-    timestamp: isoTimestamp,
-    received_at: fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0),
-  });
-}
 
 describe('CallsTable — Property 8: timestamp descending order', () => {
   afterEach(() => {

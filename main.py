@@ -116,10 +116,20 @@ def _to_float(v):
         return None
     if isinstance(v, (int, float)):
         return float(v)
-    if isinstance(v, str) and (v.strip() in _EMPTY_VALUES or v.strip() == ""):
-        return None
+    if isinstance(v, str):
+        cleaned = v.strip()
+        if cleaned in _EMPTY_VALUES or cleaned == "":
+            return None
+        # Strip currency symbols and commas (e.g. "$1,234.56" → "1234.56")
+        cleaned = cleaned.replace("$", "").replace(",", "").replace("%", "").strip()
+        if not cleaned:
+            return None
+        try:
+            return float(cleaned)
+        except (ValueError, TypeError):
+            return None
     try:
-        return float(str(v).strip())
+        return float(v)
     except (ValueError, TypeError):
         return None
 
@@ -127,9 +137,12 @@ def _to_str(v):
     """Return None for empty/placeholder strings."""
     if v is None:
         return None
-    if isinstance(v, str) and v.strip() in _EMPTY_VALUES:
-        return None
-    return v
+    if isinstance(v, str):
+        stripped = v.strip()
+        if stripped in _EMPTY_VALUES:
+            return None
+        return v  # preserve original value including whitespace
+    return str(v)
 
 # ── Models ────────────────────────────────────────────────────────────────────
 class BookingRequest(BaseModel):
@@ -389,3 +402,13 @@ def _empty_metrics():
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "Acme Logistics API", "version": "1.0.0"}
+
+
+@app.get("/debug/calls")
+async def debug_calls(api_key: str = Security(verify_api_key)):
+    """Return raw stored call records for debugging — check field values as stored."""
+    calls = load_json("call_results.json")
+    return {
+        "count": len(calls),
+        "calls": calls[-5:],  # last 5 records only
+    }

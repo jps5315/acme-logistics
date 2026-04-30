@@ -29,7 +29,9 @@ KPIs:
 - Total calls: {total_calls}
 - Success rate: {success_rate_pct}%
 - Total gross profit: ${total_gross_profit}
-- Avg gross profit margin: {avg_gross_profit_margin}%
+- Total gross profit margin: ${total_gross_profit_margin}
+- Total gross loss: ${total_gross_loss}
+- Total gross loss margin: ${total_gross_loss_margin}
 - Deal outcomes: {outcomes}
 - Carrier sentiments: {sentiments}
 
@@ -147,6 +149,8 @@ class CallResult(BaseModel):
     customer_sentiment: Optional[str] = None  # happy | unsatisfied | interested
     gross_profit: Optional[float] = None
     gross_profit_margin: Optional[float] = None
+    gross_loss: Optional[float] = None
+    gross_loss_margin: Optional[float] = None
     call_summary: Optional[str] = None
     notes: Optional[str] = None
     transcript: Optional[str] = None
@@ -159,7 +163,7 @@ class CallResult(BaseModel):
         """Coerce empty strings and N/A values to None before field validation."""
         float_fields = {
             "agreed_price", "loadboard_rate", "gross_profit",
-            "gross_profit_margin", "call_duration"
+            "gross_profit_margin", "gross_loss", "gross_loss_margin", "call_duration"
         }
         str_fields = {
             "session_id", "mc_number", "carrier_name", "load_id",
@@ -275,12 +279,11 @@ async def get_metrics(api_key: str = Security(verify_api_key)):
     # Outcome counts
     outcomes = {"successful": 0, "failed": 0, "could do better": 0, "unknown": 0}
     sentiments = {"happy": 0, "unsatisfied": 0, "interested": 0, "unknown": 0}
-    agreed_prices = []
-    loadboard_rates = []
-    durations = []
 
     gross_profits = []
     gross_profit_margins = []
+    gross_losses = []
+    gross_loss_margins = []
 
     for c in calls:
         outcome = (c.get("deal_outcome") or "unknown").lower().strip()
@@ -288,24 +291,6 @@ async def get_metrics(api_key: str = Security(verify_api_key)):
 
         sentiment = (c.get("customer_sentiment") or "unknown").lower().strip()
         sentiments[sentiment] = sentiments.get(sentiment, 0) + 1
-
-        if c.get("agreed_price"):
-            try:
-                agreed_prices.append(float(c["agreed_price"]))
-            except (ValueError, TypeError):
-                pass
-
-        if c.get("loadboard_rate"):
-            try:
-                loadboard_rates.append(float(c["loadboard_rate"]))
-            except (ValueError, TypeError):
-                pass
-
-        if c.get("call_duration"):
-            try:
-                durations.append(float(c["call_duration"]))
-            except (ValueError, TypeError):
-                pass
 
         if c.get("gross_profit") is not None:
             try:
@@ -319,19 +304,29 @@ async def get_metrics(api_key: str = Security(verify_api_key)):
             except (ValueError, TypeError):
                 pass
 
-    success_rate = round((outcomes.get("successful", 0) / total_calls) * 100, 1)
-    avg_agreed = round(sum(agreed_prices) / len(agreed_prices), 2) if agreed_prices else 0
-    avg_loadboard = round(sum(loadboard_rates) / len(loadboard_rates), 2) if loadboard_rates else 0
-    avg_duration = round(sum(durations) / len(durations), 1) if durations else 0
-    price_vs_loadboard_pct = round(((avg_agreed - avg_loadboard) / avg_loadboard) * 100, 1) if avg_loadboard else 0
-    total_gross_profit = round(sum(gross_profits), 2) if gross_profits else 0
-    avg_gross_profit_margin = round(sum(gross_profit_margins) / len(gross_profit_margins), 1) if gross_profit_margins else 0.0
+        if c.get("gross_loss") is not None:
+            try:
+                gross_losses.append(float(c["gross_loss"]))
+            except (ValueError, TypeError):
+                pass
 
-    # Calls over time (by day)
+        if c.get("gross_loss_margin") is not None:
+            try:
+                gross_loss_margins.append(float(c["gross_loss_margin"]))
+            except (ValueError, TypeError):
+                pass
+
+    success_rate = round((outcomes.get("successful", 0) / total_calls) * 100, 1)
+    total_gross_profit = round(sum(gross_profits), 2) if gross_profits else 0
+    total_gross_profit_margin = round(sum(gross_profit_margins), 2) if gross_profit_margins else 0.0
+    total_gross_loss = round(sum(gross_losses), 2) if gross_losses else 0
+    total_gross_loss_margin = round(sum(gross_loss_margins), 2) if gross_loss_margins else 0.0
+
+    # Calls over time (by day) — use session_id date prefix if available, else received_at
     from collections import defaultdict
     calls_by_day = defaultdict(int)
     for c in calls:
-        ts = c.get("timestamp") or c.get("received_at", "")
+        ts = c.get("session_id") or c.get("received_at", "")
         day = ts[:10] if ts else "unknown"
         calls_by_day[day] += 1
 
@@ -346,7 +341,9 @@ async def get_metrics(api_key: str = Security(verify_api_key)):
             "total_calls": total_calls,
             "success_rate_pct": success_rate,
             "total_gross_profit": total_gross_profit,
-            "avg_gross_profit_margin": avg_gross_profit_margin,
+            "total_gross_profit_margin": total_gross_profit_margin,
+            "total_gross_loss": total_gross_loss,
+            "total_gross_loss_margin": total_gross_loss_margin,
             "outcomes": outcomes,
             "sentiments": sentiments,
         })
@@ -358,12 +355,10 @@ async def get_metrics(api_key: str = Security(verify_api_key)):
         "summary": {
             "total_calls": total_calls,
             "success_rate_pct": success_rate,
-            "avg_agreed_rate": avg_agreed,
-            "avg_loadboard_rate": avg_loadboard,
-            "price_vs_loadboard_pct": price_vs_loadboard_pct,
-            "avg_call_duration_secs": avg_duration,
             "total_gross_profit": total_gross_profit,
-            "avg_gross_profit_margin": avg_gross_profit_margin,
+            "total_gross_profit_margin": total_gross_profit_margin,
+            "total_gross_loss": total_gross_loss,
+            "total_gross_loss_margin": total_gross_loss_margin,
         },
         "outcomes": outcomes,
         "sentiments": sentiments,
@@ -378,12 +373,10 @@ def _empty_metrics():
         "summary": {
             "total_calls": 0,
             "success_rate_pct": 0,
-            "avg_agreed_rate": 0,
-            "avg_loadboard_rate": 0,
-            "price_vs_loadboard_pct": 0,
-            "avg_call_duration_secs": 0,
             "total_gross_profit": 0,
-            "avg_gross_profit_margin": 0.0,
+            "total_gross_profit_margin": 0.0,
+            "total_gross_loss": 0,
+            "total_gross_loss_margin": 0.0,
         },
         "outcomes": {"successful": 0, "failed": 0, "could do better": 0, "unknown": 0},
         "sentiments": {"happy": 0, "unsatisfied": 0, "interested": 0, "unknown": 0},

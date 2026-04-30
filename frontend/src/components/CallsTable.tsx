@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RecentCall } from '../types/metrics';
 
 interface CallsTableProps {
@@ -32,7 +33,6 @@ const COLUMNS = [
   'Agreed Price',
   'Deal Outcome',
   'Sentiment',
-  'Call Summary',
 ];
 
 function SkeletonRows() {
@@ -47,13 +47,84 @@ function SkeletonRows() {
                   height: '14px',
                   background: '#e0e0e0',
                   borderRadius: '4px',
-                  width: col === 'Call Summary' ? '180px' : '80px',
+                  width: '80px',
                 }}
               />
             </td>
           ))}
+          {/* expand icon placeholder */}
+          <td style={{ padding: '10px 12px', width: '32px' }} />
         </tr>
       ))}
+    </>
+  );
+}
+
+function CallRow({ call }: { call: RecentCall }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <>
+      <tr
+        key={call.id}
+        onClick={() => setExpanded((prev) => !prev)}
+        style={{
+          borderBottom: expanded ? 'none' : '1px solid #eee',
+          cursor: 'pointer',
+          background: expanded ? '#f0f9ff' : undefined,
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          if (!expanded) (e.currentTarget as HTMLTableRowElement).style.background = '#f9fafb';
+        }}
+        onMouseLeave={(e) => {
+          if (!expanded) (e.currentTarget as HTMLTableRowElement).style.background = '';
+        }}
+      >
+        <td data-testid="cell-timestamp" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+          {formatTimestamp(call.session_id ?? call.timestamp)}
+        </td>
+        <td data-testid="cell-mc_number" style={{ padding: '10px 12px' }}>
+          {formatField(call.mc_number)}
+        </td>
+        <td data-testid="cell-carrier_name" style={{ padding: '10px 12px' }}>
+          {formatField(call.carrier_name)}
+        </td>
+        <td data-testid="cell-load_id" style={{ padding: '10px 12px' }}>
+          {formatField(call.load_id)}
+        </td>
+        <td data-testid="cell-loadboard_rate" style={{ padding: '10px 12px' }}>
+          {formatCurrency(call.loadboard_rate)}
+        </td>
+        <td data-testid="cell-agreed_price" style={{ padding: '10px 12px' }}>
+          {formatCurrency(call.agreed_price)}
+        </td>
+        <td data-testid="cell-deal_outcome" style={{ padding: '10px 12px' }}>
+          {formatField(call.deal_outcome)}
+        </td>
+        <td data-testid="cell-sentiment" style={{ padding: '10px 12px' }}>
+          {formatField(call.customer_sentiment)}
+        </td>
+        <td style={{ padding: '10px 12px', textAlign: 'center', color: '#6b7280', fontSize: '12px' }}>
+          {expanded ? '▲' : '▼'}
+        </td>
+      </tr>
+      {expanded && (
+        <tr style={{ borderBottom: '1px solid #eee', background: '#f0f9ff' }}>
+          <td
+            colSpan={COLUMNS.length + 1}
+            style={{ padding: '12px 16px 16px 16px' }}
+          >
+            <div style={{ fontSize: '13px', color: '#374151' }}>
+              <span style={{ fontWeight: 600, marginRight: '8px' }}>Call Summary:</span>
+              {call.call_summary
+                ? call.call_summary
+                : <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No summary available</span>
+              }
+            </div>
+          </td>
+        </tr>
+      )}
     </>
   );
 }
@@ -78,6 +149,7 @@ export default function CallsTable({ calls, loading }: CallsTableProps) {
                 {col}
               </th>
             ))}
+            <th style={{ padding: '10px 12px', borderBottom: '2px solid #ddd', width: '32px' }} />
           </tr>
         </thead>
         <tbody>
@@ -86,7 +158,7 @@ export default function CallsTable({ calls, loading }: CallsTableProps) {
           ) : calls.length === 0 ? (
             <tr>
               <td
-                colSpan={COLUMNS.length}
+                colSpan={COLUMNS.length + 1}
                 style={{ padding: '24px', textAlign: 'center', color: '#888' }}
               >
                 No calls recorded yet
@@ -94,35 +166,7 @@ export default function CallsTable({ calls, loading }: CallsTableProps) {
             </tr>
           ) : (
             calls.map((call) => (
-              <tr key={call.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td data-testid="cell-timestamp" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                  {formatTimestamp(call.timestamp)}
-                </td>
-                <td data-testid="cell-mc_number" style={{ padding: '10px 12px' }}>
-                  {formatField(call.mc_number)}
-                </td>
-                <td data-testid="cell-carrier_name" style={{ padding: '10px 12px' }}>
-                  {formatField(call.carrier_name)}
-                </td>
-                <td data-testid="cell-load_id" style={{ padding: '10px 12px' }}>
-                  {formatField(call.load_id)}
-                </td>
-                <td data-testid="cell-loadboard_rate" style={{ padding: '10px 12px' }}>
-                  {formatCurrency(call.loadboard_rate)}
-                </td>
-                <td data-testid="cell-agreed_price" style={{ padding: '10px 12px' }}>
-                  {formatCurrency(call.agreed_price)}
-                </td>
-                <td data-testid="cell-deal_outcome" style={{ padding: '10px 12px' }}>
-                  {formatField(call.deal_outcome)}
-                </td>
-                <td data-testid="cell-sentiment" style={{ padding: '10px 12px' }}>
-                  {formatField(call.customer_sentiment)}
-                </td>
-                <td data-testid="cell-call_summary" style={{ padding: '10px 12px' }}>
-                  {formatField(call.call_summary)}
-                </td>
-              </tr>
+              <CallRow key={call.id} call={call} />
             ))
           )}
         </tbody>

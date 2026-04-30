@@ -1,5 +1,6 @@
 export interface RecentCall {
   id: string;
+  session_id: string | null;
   mc_number: string | null;
   carrier_name: string | null;
   load_id: string | null;
@@ -10,6 +11,8 @@ export interface RecentCall {
   call_summary: string | null;
   gross_profit: number | null;
   gross_profit_margin: number | null;
+  gross_loss: number | null;
+  gross_loss_margin: number | null;
   timestamp: string | null;
   received_at: string;
 }
@@ -17,12 +20,10 @@ export interface RecentCall {
 export interface MetricsSummary {
   total_calls: number;
   success_rate_pct: number;
-  avg_agreed_rate: number;
-  avg_loadboard_rate: number;
-  price_vs_loadboard_pct: number;
-  avg_call_duration_secs: number;
   total_gross_profit: number;
-  avg_gross_profit_margin: number;
+  total_gross_profit_margin: number;
+  total_gross_loss: number;
+  total_gross_loss_margin: number;
 }
 
 export interface MetricsResponse {

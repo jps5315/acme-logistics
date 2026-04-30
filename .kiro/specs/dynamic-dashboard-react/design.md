@@ -42,29 +42,30 @@ graph TD
 
 #### Extended `CallResult` Model
 
-The existing Pydantic model gains three new optional fields:
+The Pydantic model includes these optional fields. `session_id` is used as the primary call identifier/timestamp from HappyRobot:
 
 ```python
 class CallResult(BaseModel):
-    # ... existing fields unchanged ...
+    session_id: Optional[str] = None       # HappyRobot session ID (used as timestamp)
+    mc_number: Optional[str] = None
+    carrier_name: Optional[str] = None
+    load_id: Optional[str] = None
+    agreed_price: Optional[float] = None
+    loadboard_rate: Optional[float] = None
+    deal_outcome: Optional[str] = None
+    customer_sentiment: Optional[str] = None
     gross_profit: Optional[float] = None
     gross_profit_margin: Optional[float] = None
+    gross_loss: Optional[float] = None
+    gross_loss_margin: Optional[float] = None
     call_summary: Optional[str] = None
+    notes: Optional[str] = None
+    transcript: Optional[str] = None
+    call_duration: Optional[float] = None
+    timestamp: Optional[str] = None
 ```
 
-#### `GeminiClient`
-
-A thin async wrapper around `google-generativeai`:
-
-```python
-class GeminiClient:
-    def __init__(self, api_key: str | None): ...
-    async def generate_insights(self, kpi_context: dict) -> str | None: ...
-```
-
-- Instantiated once at startup; if `GEMINI_API_KEY` is absent, logs a warning and `generate_insights` always returns `None`.
-- `generate_insights` constructs a prompt from the KPI dict, calls `model.generate_content_async(prompt)`, and returns the response text.
-- Any exception (network, quota, timeout) is caught; returns `None` and logs the error.
+All numeric fields are sanitized on ingestion — empty strings and `"N/A"` values are coerced to `None`.
 
 #### Updated `GET /metrics` Response Shape
 
@@ -73,11 +74,18 @@ class GeminiClient:
   "summary": {
     "total_calls": int,
     "success_rate_pct": float,
-    "avg_agreed_rate": float,
-    "avg_loadboard_rate": float,
-    "price_vs_loadboard_pct": float,
-    "avg_call_duration_secs": float,
-    "total_gross_profit": float,        # NEW
+    "total_gross_profit": float,
+    "total_gross_profit_margin": float,
+    "total_gross_loss": float,
+    "total_gross_loss_margin": float,
+  },
+  "outcomes": { str: int },
+  "sentiments": { str: int },
+  "calls_over_time": [{ "date": str, "count": int }],
+  "recent_calls": [{ ...call fields including call_summary... }],
+  "ai_insights": str | None
+}
+```
     "avg_gross_profit_margin": float,   # NEW
   },
   "outcomes": { str: int },
@@ -170,6 +178,7 @@ Shows loading skeleton while `loading`, placeholder text when `insights` is null
 ```typescript
 export interface RecentCall {
   id: string;
+  session_id: string | null;
   mc_number: string | null;
   carrier_name: string | null;
   load_id: string | null;
@@ -180,6 +189,8 @@ export interface RecentCall {
   call_summary: string | null;
   gross_profit: number | null;
   gross_profit_margin: number | null;
+  gross_loss: number | null;
+  gross_loss_margin: number | null;
   timestamp: string | null;
   received_at: string;
 }
@@ -187,12 +198,10 @@ export interface RecentCall {
 export interface MetricsSummary {
   total_calls: number;
   success_rate_pct: number;
-  avg_agreed_rate: number;
-  avg_loadboard_rate: number;
-  price_vs_loadboard_pct: number;
-  avg_call_duration_secs: number;
   total_gross_profit: number;
-  avg_gross_profit_margin: number;
+  total_gross_profit_margin: number;
+  total_gross_loss: number;
+  total_gross_loss_margin: number;
 }
 
 export interface MetricsResponse {

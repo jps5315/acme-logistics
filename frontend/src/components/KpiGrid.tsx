@@ -26,31 +26,28 @@ export function KpiGrid({ summary, loading }: KpiGridProps) {
         loading={loading}
       />
       <KpiCard
-        label="Avg Agreed Rate"
-        value={formatDollar(summary?.avg_agreed_rate ?? 0)}
-        loading={loading}
-      />
-      <KpiCard
-        label="Rate vs Loadboard"
-        value={formatPercent(summary?.price_vs_loadboard_pct ?? 0)}
-        loading={loading}
-      />
-      <KpiCard
-        label="Avg Call Duration"
-        value={`${summary?.avg_call_duration_secs ?? 0}s`}
-        loading={loading}
-      />
-      <KpiCard
-        label="Gross Profit"
+        label="Total Gross Profit"
         value={formatDollar(summary?.total_gross_profit ?? 0)}
         loading={loading}
         accentColor="#16a34a"
       />
       <KpiCard
-        label="Gross Profit Margin"
-        value={formatPercent(summary?.avg_gross_profit_margin ?? 0)}
+        label="Total Profit Margin"
+        value={formatDollar(summary?.total_gross_profit_margin ?? 0)}
         loading={loading}
         accentColor="#16a34a"
+      />
+      <KpiCard
+        label="Total Gross Loss"
+        value={formatDollar(summary?.total_gross_loss ?? 0)}
+        loading={loading}
+        accentColor="#dc2626"
+      />
+      <KpiCard
+        label="Total Loss Margin"
+        value={formatDollar(summary?.total_gross_loss_margin ?? 0)}
+        loading={loading}
+        accentColor="#dc2626"
       />
     </div>
   );

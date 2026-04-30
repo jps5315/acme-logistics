@@ -33,7 +33,7 @@ export function KpiGrid({ summary, loading }: KpiGridProps) {
       />
       <KpiCard
         label="Total Profit Margin"
-        value={formatDollar(summary?.total_gross_profit_margin ?? 0)}
+        value={formatPercent(summary?.total_gross_profit_margin ?? 0)}
         loading={loading}
         accentColor="#16a34a"
       />
@@ -45,7 +45,7 @@ export function KpiGrid({ summary, loading }: KpiGridProps) {
       />
       <KpiCard
         label="Total Loss Margin"
-        value={formatDollar(summary?.total_gross_loss_margin ?? 0)}
+        value={formatPercent(summary?.total_gross_loss_margin ?? 0)}
         loading={loading}
         accentColor="#dc2626"
       />

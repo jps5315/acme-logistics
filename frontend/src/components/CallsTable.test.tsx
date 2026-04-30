@@ -19,6 +19,7 @@ const nullableNumber = () => fc.oneof(fc.constant(null), fc.float({ noNaN: true,
 function recentCallArbitrary(): fc.Arbitrary<RecentCall> {
   return fc.record({
     id: fc.uuid(),
+    session_id: nullableString(),
     mc_number: nullableString(),
     carrier_name: nullableString(),
     load_id: nullableString(),
@@ -29,6 +30,8 @@ function recentCallArbitrary(): fc.Arbitrary<RecentCall> {
     call_summary: nullableString(),
     gross_profit: nullableNumber(),
     gross_profit_margin: nullableNumber(),
+    gross_loss: nullableNumber(),
+    gross_loss_margin: nullableNumber(),
     timestamp: nullableString(),
     received_at: fc.string({ minLength: 1, maxLength: 20 }),
   });

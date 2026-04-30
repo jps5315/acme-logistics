@@ -19,19 +19,24 @@ function recentCallArbitrary(): fc.Arbitrary<RecentCall> {
   const isoTimestamp = fc
     .date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') })
     .map((d) => d.toISOString());
+  const nullableStr = fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 }));
+  const nullableFloat = fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true }));
 
   return fc.record({
     id: fc.uuid(),
-    mc_number: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 })),
-    carrier_name: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 })),
-    load_id: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 })),
-    agreed_price: fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true })),
-    loadboard_rate: fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true })),
-    deal_outcome: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 })),
-    customer_sentiment: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 20 })),
+    session_id: nullableStr,
+    mc_number: nullableStr,
+    carrier_name: nullableStr,
+    load_id: nullableStr,
+    agreed_price: nullableFloat,
+    loadboard_rate: nullableFloat,
+    deal_outcome: nullableStr,
+    customer_sentiment: nullableStr,
     call_summary: fc.oneof(fc.constant(null), fc.string({ minLength: 1, maxLength: 50 })),
-    gross_profit: fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true })),
-    gross_profit_margin: fc.oneof(fc.constant(null), fc.float({ noNaN: true, noDefaultInfinity: true })),
+    gross_profit: nullableFloat,
+    gross_profit_margin: nullableFloat,
+    gross_loss: nullableFloat,
+    gross_loss_margin: nullableFloat,
     timestamp: isoTimestamp,
     received_at: fc.string({ minLength: 1, maxLength: 20 }),
   });

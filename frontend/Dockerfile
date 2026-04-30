@@ -11,5 +11,9 @@ RUN npm run build
 # Serve stage
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+# nginx:alpine includes envsubst — at startup it substitutes $PORT in the template
+# and writes the result to /etc/nginx/conf.d/default.conf before nginx starts
+ENV PORT=80
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

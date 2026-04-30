@@ -12,7 +12,6 @@ Validates: Requirements 2.1, 2.2
 
 import json
 from pathlib import Path
-from statistics import mean
 from unittest.mock import patch
 
 import pytest
@@ -91,13 +90,13 @@ def test_financial_kpi_aggregation_correctness(client_with_data_dir, calls):
     summary = metrics_resp.json()["summary"]
 
     expected_total_gross_profit = round(sum(c["gross_profit"] for c in calls), 2)
-    expected_avg_gross_profit_margin = round(mean(c["gross_profit_margin"] for c in calls), 1)
+    expected_total_gross_profit_margin = round(sum(c["gross_profit_margin"] for c in calls), 2)
 
     assert summary["total_gross_profit"] == expected_total_gross_profit, (
         f"total_gross_profit: expected {expected_total_gross_profit}, "
         f"got {summary['total_gross_profit']}"
     )
-    assert summary["avg_gross_profit_margin"] == expected_avg_gross_profit_margin, (
-        f"avg_gross_profit_margin: expected {expected_avg_gross_profit_margin}, "
-        f"got {summary['avg_gross_profit_margin']}"
+    assert summary["total_gross_profit_margin"] == expected_total_gross_profit_margin, (
+        f"total_gross_profit_margin: expected {expected_total_gross_profit_margin}, "
+        f"got {summary['total_gross_profit_margin']}"
     )

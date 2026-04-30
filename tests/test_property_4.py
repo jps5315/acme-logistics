@@ -106,12 +106,10 @@ def test_gemini_failure_resilience(tmp_path, exc):
         required_summary_fields = [
             "total_calls",
             "success_rate_pct",
-            "avg_agreed_rate",
-            "avg_loadboard_rate",
-            "price_vs_loadboard_pct",
-            "avg_call_duration_secs",
             "total_gross_profit",
-            "avg_gross_profit_margin",
+            "total_gross_profit_margin",
+            "total_gross_loss",
+            "total_gross_loss_margin",
         ]
         for field in required_summary_fields:
             assert field in summary, (

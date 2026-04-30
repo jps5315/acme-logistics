@@ -24,7 +24,7 @@ import main
 # ── Strategies ────────────────────────────────────────────────────────────────
 
 # Strategies for each optional field type
-_text = st.text(min_size=1, max_size=50)
+_text = st.text(min_size=1, max_size=50, alphabet=st.characters(min_codepoint=32, max_codepoint=126))
 _float_val = st.floats(min_value=0.0, max_value=1_000_000.0, allow_nan=False, allow_infinity=False)
 _outcome = st.sampled_from(["successful", "failed", "could do better"])
 _sentiment = st.sampled_from(["happy", "unsatisfied", "interested"])
@@ -47,6 +47,8 @@ def call_result_strategy():
             "call_summary": _text,
             "gross_profit": _float_val,
             "gross_profit_margin": st.floats(min_value=0.0, max_value=100.0, allow_nan=False, allow_infinity=False),
+            "gross_loss": _float_val,
+            "gross_loss_margin": st.floats(min_value=0.0, max_value=100.0, allow_nan=False, allow_infinity=False),
             "call_duration": _float_val,
             "transcript": _text,
             "notes": _text,

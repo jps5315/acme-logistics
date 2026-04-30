@@ -24,8 +24,23 @@ Carrier (phone/web) → HappyRobot Voice Agent
 ```
 
 **Services:**
-- **Backend** — FastAPI on port `8000`. Receives call data, aggregates KPIs, calls Gemini for insights.
-- **Frontend** — Vite + React SPA on port `3000`. Polls `/metrics` every 30s and renders KPI cards, charts, call table, and AI insights.
+- **Backend** — FastAPI on port `8000`. Receives call data, aggregates KPIs (total gross profit, total gross loss, success rate), calls Gemini for insights.
+- **Frontend** — Vite + React SPA on port `3000`. Polls `/metrics` every 30s and renders KPI cards, charts, a clickable calls table, and AI insights.
+
+### Dashboard KPI Cards
+
+| Card | Value |
+|------|-------|
+| Total Calls | Count of all recorded calls |
+| Success Rate | % of calls with `deal_outcome: successful` |
+| Total Gross Profit | Sum of all `gross_profit` values |
+| Total Profit Margin | Sum of all `gross_profit_margin` values |
+| Total Gross Loss | Sum of all `gross_loss` values |
+| Total Loss Margin | Sum of all `gross_loss_margin` values |
+
+### Recent Calls Table
+
+Each row in the recent calls table is **clickable**. Clicking a row expands a dropdown showing the call summary for that call. The call summary column has been removed from the table — summaries are only shown in the expanded dropdown. Columns displayed: Timestamp, MC Number, Carrier Name, Load ID, Loadboard Rate, Agreed Price, Deal Outcome, Sentiment.
 
 ## Project Structure
 
@@ -101,11 +116,14 @@ All endpoints require the `X-API-Key` header.
 
 ### Example: Post a Call Result
 
+HappyRobot sends `session_id` as the call identifier. The backend sanitizes empty strings and `"N/A"` values automatically — they are stored as `null`.
+
 ```bash
-curl -X POST "http://localhost:8000/calls/result" \
+curl -X POST "https://<your-backend-url>/calls/result" \
   -H "X-API-Key: acme-secret-key-2024" \
   -H "Content-Type: application/json" \
   -d '{
+    "session_id": "session-abc-123",
     "mc_number": "MC-123456",
     "carrier_name": "Swift Transport",
     "load_id": "LD-1001",
@@ -113,11 +131,32 @@ curl -X POST "http://localhost:8000/calls/result" \
     "loadboard_rate": 2850,
     "gross_profit": 100,
     "gross_profit_margin": 3.4,
+    "gross_loss": 0,
+    "gross_loss_margin": 0,
     "deal_outcome": "successful",
     "customer_sentiment": "happy",
-    "call_summary": "Carrier agreed after minor negotiation.",
-    "call_duration": 210
+    "call_summary": "Carrier agreed after minor negotiation."
   }'
+```
+
+### `GET /metrics` Response Shape
+
+```json
+{
+  "summary": {
+    "total_calls": 5,
+    "success_rate_pct": 80.0,
+    "total_gross_profit": 450.00,
+    "total_gross_profit_margin": 17.2,
+    "total_gross_loss": 50.00,
+    "total_gross_loss_margin": 2.1
+  },
+  "outcomes": { "successful": 4, "failed": 1, "could do better": 0, "unknown": 0 },
+  "sentiments": { "happy": 3, "unsatisfied": 1, "interested": 1, "unknown": 0 },
+  "calls_over_time": [{ "date": "2026-05-10", "count": 5 }],
+  "recent_calls": [ ... ],
+  "ai_insights": "• Consider targeting dry van loads..."
+}
 ```
 
 ## HappyRobot Workflow Setup
@@ -126,11 +165,33 @@ After deploying, update these node URLs in your HappyRobot workflow:
 
 | Node                    | Method | URL                                                                 |
 |-------------------------|--------|---------------------------------------------------------------------|
-| Fetch Matching Loads    | GET    | `https://<your-domain>/loads/search?origin={{origin}}&equipment_type={{equipment_type}}` |
-| Mock Transfer to Sales  | POST   | `https://<your-domain>/bookings/confirm`                            |
-| Send Call Results       | POST   | `https://<your-domain>/calls/result`                                |
+| Fetch Matching Loads    | GET    | `https://<loads-url>/loads/search?origin={{origin}}&equipment_type={{equipment_type}}` |
+| Mock Transfer to Sales  | POST   | `https://<backend-url>/bookings/confirm`                            |
+| Send Call Results       | POST   | `https://<backend-url>/calls/result`                                |
 
-Set the `X-API-Key` header to your `API_KEY` value on all nodes.
+Set the `X-API-Key` header to your `API_KEY` value on the bookings and call result nodes. The loads search endpoint is public — no header required.
+
+### Call Result Payload Fields
+
+HappyRobot should POST these fields to `/calls/result`. All fields are optional — missing or `"N/A"` values are stored as `null` automatically.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `session_id` | string | HappyRobot session ID (used as call identifier/timestamp) |
+| `mc_number` | string | Carrier MC number |
+| `carrier_name` | string | Carrier company name |
+| `load_id` | string | Load ID from the loads database |
+| `agreed_price` | number | Final agreed rate |
+| `loadboard_rate` | number | Reference loadboard rate |
+| `deal_outcome` | string | `successful` / `failed` / `could do better` |
+| `customer_sentiment` | string | `happy` / `unsatisfied` / `interested` |
+| `gross_profit` | number | Profit on this call |
+| `gross_profit_margin` | number | Profit margin % |
+| `gross_loss` | number | Loss on this call (if applicable) |
+| `gross_loss_margin` | number | Loss margin % |
+| `call_summary` | string | Human-readable summary of the call |
+| `notes` | string | Additional notes |
+|
 
 ---
 
